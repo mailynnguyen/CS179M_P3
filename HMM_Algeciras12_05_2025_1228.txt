@@ -1,8 +1,0 @@
-12 05 2025: 12:28 Program was started.
-12 05 2025: 12:28 Manifest HMM_Algeciras.txt is opened, there are 2 containers on the ship.
-12 05 2025: 12:28 Balance solution found, it will require 1 moves/26 minutes.
-12 05 2025: 12:28 1 of 3: Move from PARK to [01,05], 11 minutes
-12 05 2025: 12:28 2 of 3: Move container in [01,05] to [01,07], 2 minutes
-12 05 2025: 12:28 3 of 3: Move from [01,07] to PARK, 13 minutes
-12 05 2025: 12:28 Finished a Cycle. Manifest HMM_AlgecirasOUTBOUND.txt was written to desktop, and a reminder pop-up to operator to send file was displayed.
-12 05 2025: 12:28 Program was shut down.

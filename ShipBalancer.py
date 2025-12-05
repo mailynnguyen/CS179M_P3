@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import datetime 
+from collections import deque
 
 # turns the file into a 2d array
 def load_ship(filename):
@@ -45,6 +46,7 @@ def compute_sides(grid):
     w_right = sum(get_weight(x) for x in right.flatten()) # gets the weight of every value on the right side and add up the sum
     return w_left, w_right # returns the left and right weight
 
+# find the starting and ending cells
 def find_cells(grid):
     rows, cols = grid.shape # extracts the rows and cols from grid (8, 12)
     occupied = []
@@ -53,7 +55,8 @@ def find_cells(grid):
         for c in range(cols):
             if np.isnan(grid[r, c]): # if cell is nan, continue
                 continue
-            if grid[r, c] == 0: # if cell is 0, append the tuple value into the empty array
+            # if cell is 0 and at the bottom or under is a container, append the tuple value into the empty array
+            if grid[r, c] == 0 and (r - 1 < 0 or grid[r-1, c] != 0): 
                 empty.append((r, c))
             else: # else, append into the occupied array
                 occupied.append((r, c))
@@ -62,9 +65,39 @@ def find_cells(grid):
 def format_coord(r, c):
     return f"[{r+1:02d},{c+1:02d}]"
 
-def move_cost(r1, c1, r2, c2):
-    PARK_ROW, PARK_COL = 7, 0
-    return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+def find_path(grid, start, goal):
+    rows, cols = grid.shape # get rows and cols from grid (8, 12)
+    visited = set() # make a set for visited cells that have been checked alr
+    q = deque() # make a queue to store all the cells that needs to be explored
+    q.append((start, [start])) # stores the starting cell and the path from the start to goal so far
+    visited.add(start) # add the starting cell to visited so we don't visit this pos again
+
+    while q: # while there are cells left to visit
+        (r, c), path = q.popleft() # extract the cell details and the path so far
+        if (r, c) == goal: # if we have reached the goal return the path
+            return path
+        
+        directions = [(-1,0), (0,1), (1,0), (0,-1)]
+
+        for row_move, col_move in directions:
+            new_row, new_col = r + row_move, c + col_move
+            # if the new cell is valid and hasn't been visited
+            if 0 <= new_row < rows and 0 <= new_col < cols and (new_row, new_col) not in visited: 
+                # if the cell is empty or the cell is the goal
+                if grid[new_row, new_col] == 0 or (new_row, new_col) == goal:
+                    visited.add((new_row, new_col)) # add to the visited set
+                    q.append(((new_row, new_col), path + [(new_row, new_col)]))
+
+    return None # no path found
+
+def move_cost(grid, start, goal):
+# def move_cost(r1, c1, r2, c2):
+    # PARK_ROW, PARK_COL = 7, 0
+    # return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+    path = find_path(grid, start, goal) # get the path
+    if path is None:
+        return float('inf')
+    return len(path) - 1 
 
 def describe_move(r1, c1, r2, c2):
     PARK_ROW, PARK_COL = 7, 0
@@ -115,7 +148,12 @@ def compute_balance_moves(grid):
         best_cost = float('inf')
         for (r1, c1) in left_containers:
             for (r2, c2) in right_empty:
-                cost = move_cost(r1, c1, r2, c2)
+                # cost = move_cost(r1, c1, r2, c2)
+                path = find_path(grid, (r1, c1), (r2, c2))
+                if path is None:
+                    continue
+                cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
+                # cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
@@ -137,7 +175,11 @@ def compute_balance_moves(grid):
         best_cost = float('inf')
         for (r1, c1) in right_containers:
             for (r2, c2) in left_empty:
-                cost = move_cost(r1, c1, r2, c2)
+                # cost = move_cost(r1, c1, r2, c2)
+                path = find_path(grid, (r1, c1), (r2, c2))
+                if path is None:
+                    continue
+                cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
