@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from datetime 
+import datetime 
 
 # turns the file into a 2d array
 def load_ship(filename):
