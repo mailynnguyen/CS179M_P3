@@ -77,9 +77,9 @@ def describe_move(r1, c1, r2, c2):
     dst = format_coord(r2, c2)
 
     return [
-        f"Move from PARK to {src}, {first_move_cost} minutes", first_move_cost, 
-        f"Move container in {src} to {dst}, {second_move_cost} minutes", second_move_cost, 
-        f"Move from {dst} to PARK, {third_move_cost} minutes, third_move_cost"
+        (f"Move from PARK to {src}, {first_move_cost} minutes", first_move_cost),
+        (f"Move container in {src} to {dst}, {second_move_cost} minutes", second_move_cost),
+        (f"Move from {dst} to PARK, {third_move_cost} minutes", third_move_cost),
     ]
 
 def side_of(c, total_cols):
@@ -167,12 +167,12 @@ def make_logfile_name(input_file, start_time):
     new_filename = input_file.replace(".txt", "")
     return f"{new_filename}{start_time.month:02d}_{start_time.day:02d}_{start_time.year}_{start_time.hour:02d}{start_time.minute:02d}.txt"
 
-def log_line(log_file, curr_time, line):
+def log_line(log_file, line):
     now = datetime.datetime.now()
     timestamp = now.strftime("%m %d %Y: %H:%M ")
     log_file.write(timestamp + line + "\n")
 
-def print_solution(moves, outfile_name):
+def print_solution(moves, outfile_name, log_file):
     total_steps = len(moves) * 3
     step_num = 1
 
