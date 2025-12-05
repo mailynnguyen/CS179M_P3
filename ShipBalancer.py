@@ -1,7 +1,6 @@
 import numpy as np
 import math
-from datetime import datetime
-from collections import deque
+import datetime 
 
 # turns the file into a 2d array
 def load_ship(filename):
@@ -36,7 +35,7 @@ def get_weight(val):
     # return val // 10 if not np.isnan(val) and val != 0 else 0
     return val if not np.isnan(val) and val != 0 else 0
 
-# computes the weights of the left and right side of the grid
+#computes the weights of the left and right side of the grid
 def compute_sides(grid):
     rows, cols = grid.shape # extracts rows and cols from grid (8, 12)
     mid = cols // 2 # divides col by 2 and floors the result, ex. 17 // 2 = 8
@@ -46,7 +45,6 @@ def compute_sides(grid):
     w_right = sum(get_weight(x) for x in right.flatten()) # gets the weight of every value on the right side and add up the sum
     return w_left, w_right # returns the left and right weight
 
-# adds the empty and non-empty cells to corresponding arrays
 def find_cells(grid):
     rows, cols = grid.shape # extracts the rows and cols from grid (8, 12)
     occupied = []
@@ -64,20 +62,9 @@ def find_cells(grid):
 def format_coord(r, c):
     return f"[{r+1:02d},{c+1:02d}]"
 
-def astar(grid, start, goal):
-    rows, cols = grid.shape
-    sr, sc = start
-    er, ec = goal
-    
-
-def move_cost(r1, c1, r2, c2, grid):
-    # PARK_ROW, PARK_COL = 7, 0
-    # return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
-    PARK = (7, 0)
-    park_to_src_cost = astar(grid, PARK, (r1, c1))
-    src_to_dest_cost = astar(grid, (r1, c1), (r2, c2))
-    dest_to_park_cost = astar(grid, (r2, c2), PARK)
-    return park_to_src_cost, src_to_dest_cost, dest_to_park_cost
+def move_cost(r1, c1, r2, c2):
+    PARK_ROW, PARK_COL = 7, 0
+    return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
 
 def describe_move(r1, c1, r2, c2):
     PARK_ROW, PARK_COL = 7, 0
@@ -90,9 +77,9 @@ def describe_move(r1, c1, r2, c2):
     dst = format_coord(r2, c2)
 
     return [
-        f"Move from PARK to {src}, {first_move_cost} minutes",
-        f"Move container in {src} to {dst}, {second_move_cost} minutes",
-        f"Move from {dst} to PARK, {third_move_cost} minutes"
+        (f"Move from PARK to {src}, {first_move_cost} minutes", first_move_cost),
+        (f"Move container in {src} to {dst}, {second_move_cost} minutes", second_move_cost),
+        (f"Move from {dst} to PARK, {third_move_cost} minutes", third_move_cost),
     ]
 
 def side_of(c, total_cols):
@@ -178,13 +165,14 @@ def write_output_file(infile, grid):
 
 def make_logfile_name(input_file, start_time):
     new_filename = input_file.replace(".txt", "")
-    return f"{new_filename}{start_time.month:02d}_{start_time.year}_{start_time.hour:02d}{start_time.minute:02d}.txt"
+    return f"{new_filename}{start_time.month:02d}_{start_time.day:02d}_{start_time.year}_{start_time.hour:02d}{start_time.minute:02d}.txt"
 
-def log_line(log_file, curr_time, line):
-    timestamp = curr_time.strftime("%m %d %Y: %H:%M ")
+def log_line(log_file, line):
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%m %d %Y: %H:%M ")
     log_file.write(timestamp + line + "\n")
 
-def print_solution(moves, outfile_name):
+def print_solution(moves, outfile_name, log_file):
     total_steps = len(moves) * 3
     step_num = 1
 
@@ -195,20 +183,59 @@ def print_solution(moves, outfile_name):
 
     for i, (r1, c1, r2, c2, cost) in enumerate(moves, start=1):
         steps = describe_move(r1, c1, r2, c2)
-        for step in steps:
-            print(f"{step_num} of {total_steps}: {step}")
+        for leg_index, (text, minutes) in enumerate(steps, start=1):
+            print(f"{step_num} of {total_steps}: {text}")
             step_num += 1
+            log_line(log_file, f"{leg_index} of 3: {text}")
 
+    log_line(log_file,f"Finished a Cycle. Manifest {outfile_name} was written to desktop, and a reminder pop-up to operator to send file was displayed.")
+    log_line(log_file, "Program was shut down.")
+    
     print(f"Done! {outfile_name} was written to the desktop")
 
 def main():
-    curr_time = datetime.now().strftime("%H%M")
-    print(curr_time)
+    #curr_time = datetime.now().strftime("%H%M")
+    #print(curr_time)
     infile = input("Enter ship file name: ")
-    grid = load_ship(infile)
-    moves = compute_balance_moves(grid)
-    outfile = write_output_file(infile, grid)
-    print_solution(moves, outfile)
+    start_time = datetime.datetime.now()
+    curr_time = start_time.strftime("%H%M")
+    print(curr_time)
+
+    log_filename = make_logfile_name(infile, start_time)
+    print("Log file will be named:", log_filename)
+
+    with open(log_filename, "w") as log_file:
+        log_line(log_file, "Program was started.")
+        grid = load_ship(infile)
+        occupied, empty = find_cells(grid)
+        log_line(log_file,f"Manifest {infile} is opened, there are {len(occupied)} containers on the ship.")
+
+        moves = compute_balance_moves(grid)
+        
+
+        total_minutes = sum(m[4] for m in moves)
+        total_moves = len(moves)
+        log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
+
+        #total_minutes = 0
+        #for (r1, c1, r2, c2, cost) in moves:
+         #   steps = describe_move(r1, c1, r2, c2)
+          #  for text, minutes in steps:
+           #     total_minutes += minutes
+        #total_moves = len(moves)
+        #log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
+
+        outfile = write_output_file(infile, grid)
+        print_solution(moves, outfile, log_file)
+
+    #log_file = open("program_log.txt", "w")
+    #log_line(log_file, "Program was started.")
+
+    #grid = load_ship(infile)
+    #moves = compute_balance_moves(grid)
+    #outfile = write_output_file(infile, grid)
+    #print_solution(moves, outfile)
+
 
 if __name__ == "__main__":
     main()
