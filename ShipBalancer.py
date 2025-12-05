@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from datetime import datetime
+from collections import deque
 
 # turns the file into a 2d array
 def load_ship(filename):
@@ -35,7 +36,7 @@ def get_weight(val):
     # return val // 10 if not np.isnan(val) and val != 0 else 0
     return val if not np.isnan(val) and val != 0 else 0
 
-#computes the weights of the left and right side of the grid
+# computes the weights of the left and right side of the grid
 def compute_sides(grid):
     rows, cols = grid.shape # extracts rows and cols from grid (8, 12)
     mid = cols // 2 # divides col by 2 and floors the result, ex. 17 // 2 = 8
@@ -45,6 +46,7 @@ def compute_sides(grid):
     w_right = sum(get_weight(x) for x in right.flatten()) # gets the weight of every value on the right side and add up the sum
     return w_left, w_right # returns the left and right weight
 
+# adds the empty and non-empty cells to corresponding arrays
 def find_cells(grid):
     rows, cols = grid.shape # extracts the rows and cols from grid (8, 12)
     occupied = []
@@ -62,9 +64,20 @@ def find_cells(grid):
 def format_coord(r, c):
     return f"[{r+1:02d},{c+1:02d}]"
 
-def move_cost(r1, c1, r2, c2):
-    PARK_ROW, PARK_COL = 7, 0
-    return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+def astar(grid, start, goal):
+    rows, cols = grid.shape
+    sr, sc = start
+    er, ec = goal
+    
+
+def move_cost(r1, c1, r2, c2, grid):
+    # PARK_ROW, PARK_COL = 7, 0
+    # return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+    PARK = (7, 0)
+    park_to_src_cost = astar(grid, PARK, (r1, c1))
+    src_to_dest_cost = astar(grid, (r1, c1), (r2, c2))
+    dest_to_park_cost = astar(grid, (r2, c2), PARK)
+    return park_to_src_cost, src_to_dest_cost, dest_to_park_cost
 
 def describe_move(r1, c1, r2, c2):
     PARK_ROW, PARK_COL = 7, 0
