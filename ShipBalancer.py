@@ -2,6 +2,8 @@ import numpy as np
 import math
 import datetime 
 from collections import deque
+import msvcrt
+import sys
 
 # turns the file into a 2d array
 def load_ship(filename):
@@ -214,6 +216,22 @@ def log_line(log_file, line):
     timestamp = now.strftime("%m %d %Y: %H:%M ")
     log_file.write(timestamp + line + "\n")
 
+def check_for_comment(log_file):
+    if msvcrt.kbhit():
+        key = msvcrt.getwch()
+        if key.lower() == 'c':
+            user_comment = input("\nEnter comment: ")
+            log_line(log_file, f'A comment was written to the log "{user_comment}"')
+            print("Comment recorded.\n")
+        if key.lower() == 'q':
+            log_line(log_file, "Program was shut down.")
+            sys.exit()
+
+
+def comment_hook(log_file):
+    # call this in any loop where user can press "c"
+    check_for_comment(log_file)
+
 def print_solution(moves, outfile_name, log_file):
     total_steps = len(moves) * 3
     step_num = 1
@@ -231,13 +249,10 @@ def print_solution(moves, outfile_name, log_file):
             log_line(log_file, f"{leg_index} of 3: {text}")
 
     log_line(log_file,f"Finished a Cycle. Manifest {outfile_name} was written to desktop, and a reminder pop-up to operator to send file was displayed.")
-    log_line(log_file, "Program was shut down.")
     
     print(f"Done! {outfile_name} was written to the desktop")
 
 def main():
-    #curr_time = datetime.now().strftime("%H%M")
-    #print(curr_time)
     infile = input("Enter ship file name: ")
     start_time = datetime.datetime.now()
     curr_time = start_time.strftime("%H%M")
@@ -254,21 +269,16 @@ def main():
 
         moves = compute_balance_moves(grid)
         
-
         total_minutes = sum(m[4] for m in moves)
         total_moves = len(moves)
         log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
 
-        #total_minutes = 0
-        #for (r1, c1, r2, c2, cost) in moves:
-         #   steps = describe_move(r1, c1, r2, c2)
-          #  for text, minutes in steps:
-           #     total_minutes += minutes
-        #total_moves = len(moves)
-        #log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
-
         outfile = write_output_file(infile, grid)
         print_solution(moves, outfile, log_file)
+
+        while True:
+            comment_hook(log_file)
+
 
     #log_file = open("program_log.txt", "w")
     #log_line(log_file, "Program was started.")
