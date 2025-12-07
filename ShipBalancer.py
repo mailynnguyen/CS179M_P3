@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import datetime 
+from collections import deque
 import msvcrt
 import sys
 
@@ -47,6 +48,7 @@ def compute_sides(grid):
     w_right = sum(get_weight(x) for x in right.flatten()) # gets the weight of every value on the right side and add up the sum
     return w_left, w_right # returns the left and right weight
 
+# find the starting and ending cells
 def find_cells(grid):
     rows, cols = grid.shape # extracts the rows and cols from grid (8, 12)
     occupied = []
@@ -55,7 +57,8 @@ def find_cells(grid):
         for c in range(cols):
             if np.isnan(grid[r, c]): # if cell is nan, continue
                 continue
-            if grid[r, c] == 0: # if cell is 0, append the tuple value into the empty array
+            # if cell is 0 and at the bottom or under is a container, append the tuple value into the empty array
+            if grid[r, c] == 0: 
                 empty.append((r, c))
             else: # else, append into the occupied array
                 occupied.append((r, c))
@@ -64,9 +67,39 @@ def find_cells(grid):
 def format_coord(r, c):
     return f"[{r+1:02d},{c+1:02d}]"
 
-def move_cost(r1, c1, r2, c2):
-    PARK_ROW, PARK_COL = 7, 0
-    return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+def find_path(grid, start, goal):
+    rows, cols = grid.shape # get rows and cols from grid (8, 12)
+    visited = set() # make a set for visited cells that have been checked alr
+    q = deque() # make a queue to store all the cells that needs to be explored
+    q.append((start, [start])) # stores the starting cell and the path from the start to goal so far
+    visited.add(start) # add the starting cell to visited so we don't visit this pos again
+
+    while q: # while there are cells left to visit
+        (r, c), path = q.popleft() # extract the cell details and the path so far
+        if (r, c) == goal: # if we have reached the goal return the path
+            return path
+        
+        directions = [(-1,0), (0,1), (1,0), (0,-1)]
+
+        for row_move, col_move in directions:
+            new_row, new_col = r + row_move, c + col_move
+            # if the new cell is valid and hasn't been visited
+            if 0 <= new_row < rows and 0 <= new_col < cols and (new_row, new_col) not in visited: 
+                # if the cell is empty or the cell is the goal
+                if grid[new_row, new_col] == 0 or (new_row, new_col) == goal:
+                    visited.add((new_row, new_col)) # add to the visited set
+                    q.append(((new_row, new_col), path + [(new_row, new_col)]))
+
+    return None # no path found
+
+def move_cost(grid, start, goal):
+# def move_cost(r1, c1, r2, c2):
+    # PARK_ROW, PARK_COL = 7, 0
+    # return abs(PARK_ROW - r1) + abs(PARK_COL - c1) + abs(r1 - r2) + abs(c1 - c2) + abs(r2 - PARK_ROW) + abs(c2 - PARK_COL)
+    path = find_path(grid, start, goal) # get the path
+    if path is None:
+        return float('inf')
+    return len(path) - 1 
 
 def describe_move(r1, c1, r2, c2):
     PARK_ROW, PARK_COL = 7, 0
@@ -76,12 +109,12 @@ def describe_move(r1, c1, r2, c2):
     third_move_cost = abs(PARK_ROW - r2) + abs(PARK_COL - c2)
 
     src = format_coord(r1, c1)
-    dst = format_coord(r2, c2)
+    dest = format_coord(r2, c2)
 
     return [
         (f"Move from PARK to {src}, {first_move_cost} minutes", first_move_cost),
-        (f"Move container in {src} to {dst}, {second_move_cost} minutes", second_move_cost),
-        (f"Move from {dst} to PARK, {third_move_cost} minutes", third_move_cost),
+        (f"Move container in {src} to {dest}, {second_move_cost} minutes", second_move_cost),
+        (f"Move from {dest} to PARK, {third_move_cost} minutes", third_move_cost),
     ]
 
 def side_of(c, total_cols):
@@ -117,14 +150,19 @@ def compute_balance_moves(grid):
         best_cost = float('inf')
         for (r1, c1) in left_containers:
             for (r2, c2) in right_empty:
-                cost = move_cost(r1, c1, r2, c2)
+                # cost = move_cost(r1, c1, r2, c2)
+                path = find_path(grid, (r1, c1), (r2, c2))
+                if path is None:
+                    continue
+                # cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
+                cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
  
         # once found append the move with the cost to moves array
         r1, c1, r2, c2 = best
-        moves.append((r1, c1, r2, c2, best_cost))
+        moves.append((r1, c1, r2, c2, best_cost + abs(7 - r1) + abs(0 - c1) + abs(r2 - 7) + abs(c2 - 0)))
         # swap the cells
         grid[r2, c2] = grid[r1, c1]
         grid[r1, c1] = 0
@@ -139,13 +177,18 @@ def compute_balance_moves(grid):
         best_cost = float('inf')
         for (r1, c1) in right_containers:
             for (r2, c2) in left_empty:
-                cost = move_cost(r1, c1, r2, c2)
+                # cost = move_cost(r1, c1, r2, c2)
+                path = find_path(grid, (r1, c1), (r2, c2))
+                if path is None:
+                    continue
+                # cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
+                cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
 
         r1, c1, r2, c2 = best
-        moves.append((r1, c1, r2, c2, best_cost))
+        moves.append((r1, c1, r2, c2, best_cost + abs(7 - r1) + abs(0 - c1) + abs(r2 - 7) + abs(c2 - 0)))
         grid[r2, c2] = grid[r1, c1]
         grid[r1, c1] = 0
 
@@ -195,7 +238,7 @@ def print_solution(moves, outfile_name, log_file):
     step_num = 1
 
     total_minutes = sum(m[4] for m in moves)
-    total_moves = len(moves)
+    total_moves = len(moves) * 3
 
     print(f"… solution was found, it will take {total_minutes} minutes and {total_moves} moves")
 
@@ -228,7 +271,7 @@ def main():
         moves = compute_balance_moves(grid)
         
         total_minutes = sum(m[4] for m in moves)
-        total_moves = len(moves)
+        total_moves = len(moves) * 3
         log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
 
         outfile = write_output_file(infile, grid)
@@ -236,15 +279,6 @@ def main():
 
         while True:
             comment_hook(log_file)
-
-
-    #log_file = open("program_log.txt", "w")
-    #log_line(log_file, "Program was started.")
-
-    #grid = load_ship(infile)
-    #moves = compute_balance_moves(grid)
-    #outfile = write_output_file(infile, grid)
-    #print_solution(moves, outfile)
 
 
 if __name__ == "__main__":
