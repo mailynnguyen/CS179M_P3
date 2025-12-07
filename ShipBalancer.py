@@ -58,7 +58,7 @@ def find_cells(grid):
             if np.isnan(grid[r, c]): # if cell is nan, continue
                 continue
             # if cell is 0 and at the bottom or under is a container, append the tuple value into the empty array
-            if grid[r, c] == 0 and (r - 1 < 0 or grid[r-1, c] != 0): 
+            if grid[r, c] == 0: 
                 empty.append((r, c))
             else: # else, append into the occupied array
                 occupied.append((r, c))
@@ -109,12 +109,12 @@ def describe_move(r1, c1, r2, c2):
     third_move_cost = abs(PARK_ROW - r2) + abs(PARK_COL - c2)
 
     src = format_coord(r1, c1)
-    dst = format_coord(r2, c2)
+    dest = format_coord(r2, c2)
 
     return [
         (f"Move from PARK to {src}, {first_move_cost} minutes", first_move_cost),
-        (f"Move container in {src} to {dst}, {second_move_cost} minutes", second_move_cost),
-        (f"Move from {dst} to PARK, {third_move_cost} minutes", third_move_cost),
+        (f"Move container in {src} to {dest}, {second_move_cost} minutes", second_move_cost),
+        (f"Move from {dest} to PARK, {third_move_cost} minutes", third_move_cost),
     ]
 
 def side_of(c, total_cols):
@@ -154,15 +154,15 @@ def compute_balance_moves(grid):
                 path = find_path(grid, (r1, c1), (r2, c2))
                 if path is None:
                     continue
-                cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
-                # cost = len(path) - 1
+                # cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
+                cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
  
         # once found append the move with the cost to moves array
         r1, c1, r2, c2 = best
-        moves.append((r1, c1, r2, c2, best_cost))
+        moves.append((r1, c1, r2, c2, best_cost + abs(7 - r1) + abs(0 - c1) + abs(r2 - 7) + abs(c2 - 0)))
         # swap the cells
         grid[r2, c2] = grid[r1, c1]
         grid[r1, c1] = 0
@@ -181,13 +181,14 @@ def compute_balance_moves(grid):
                 path = find_path(grid, (r1, c1), (r2, c2))
                 if path is None:
                     continue
+                # cost = abs(7 - r1) + abs(0 - c1) + len(path) - 1 + abs(r2 - 7) + abs(c2 - 0)
                 cost = len(path) - 1
                 if cost < best_cost:
                     best = (r1, c1, r2, c2)
                     best_cost = cost
 
         r1, c1, r2, c2 = best
-        moves.append((r1, c1, r2, c2, best_cost))
+        moves.append((r1, c1, r2, c2, best_cost + abs(7 - r1) + abs(0 - c1) + abs(r2 - 7) + abs(c2 - 0)))
         grid[r2, c2] = grid[r1, c1]
         grid[r1, c1] = 0
 
@@ -237,7 +238,7 @@ def print_solution(moves, outfile_name, log_file):
     step_num = 1
 
     total_minutes = sum(m[4] for m in moves)
-    total_moves = len(moves)
+    total_moves = len(moves) * 3
 
     print(f"… solution was found, it will take {total_minutes} minutes and {total_moves} moves")
 
@@ -270,7 +271,7 @@ def main():
         moves = compute_balance_moves(grid)
         
         total_minutes = sum(m[4] for m in moves)
-        total_moves = len(moves)
+        total_moves = len(moves) * 3
         log_line(log_file,f"Balance solution found, it will require {total_moves} moves/{total_minutes} minutes.")
 
         outfile = write_output_file(infile, grid)
@@ -278,15 +279,6 @@ def main():
 
         while True:
             comment_hook(log_file)
-
-
-    #log_file = open("program_log.txt", "w")
-    #log_line(log_file, "Program was started.")
-
-    #grid = load_ship(infile)
-    #moves = compute_balance_moves(grid)
-    #outfile = write_output_file(infile, grid)
-    #print_solution(moves, outfile)
 
 
 if __name__ == "__main__":
